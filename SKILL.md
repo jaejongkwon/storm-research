@@ -243,7 +243,19 @@ cat "$SKILL_DIR/tmp/persona-1.md" \
    - `{{STEP3_OUTPUT}}` → `tmp/step3-synthesis.md` 파일의 전체 내용
 3. 엄격한 동료 심사위원 시각으로 보고서를 검토한다:
    - 출처 신뢰성, 할루시네이션 위험, 논리 일관성, 갭 분석
+   - 각 항목에 심각도 **[HIGH/MED/LOW]** + 수정 난이도 **[Easy/Hard]** 태그 부여
 4. 결과를 `tmp/step4-peer-review.md`에 저장한다.
+5. `tmp/step4-peer-review.md`에서 **Overall Assessment**를 확인하여 분기:
+   - `Acceptable` → Phase 4로 진행
+   - `Needs Revision` → HIGH 항목을 `tmp/step3-synthesis.md`에 즉시 적용 수정 후 Phase 4로 진행
+     (수정 내용: HIGH 항목만 대상, 새로운 분석 추가 금지 — 기존 오류 교정만)
+   - `Major Revision` → 즉시 중단하고 사용자에게 알림:
+     ```
+     ⚠️  동료 심사 결과: Major Revision 필요
+     HIGH 항목 [N]건 발견 — 자동 수정 범위를 초과합니다.
+     tmp/step4-peer-review.md를 확인하고 /storm-research 를 재실행하거나
+     Step 3을 수동으로 수정한 뒤 Phase 4를 직접 실행하세요.
+     ```
 
 ---
 

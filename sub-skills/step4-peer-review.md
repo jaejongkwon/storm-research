@@ -37,17 +37,21 @@ description: STORM 4단계 — 보고서를 동료 심사위원 시각으로 검
 
 **Overall Assessment:** [Acceptable / Needs Revision / Major Revision]
 
+**수정 필요 항목 요약:** HIGH N건 | MED N건 | LOW N건
+
 **Source Reliability Issues:**
-- ...
+- **[HIGH/MED/LOW | Easy/Hard]** 항목 설명...
+
+(각 항목에 심각도[HIGH/MED/LOW]와 수정 난이도[Easy/Hard] 태그 필수)
 
 **Potential Hallucinations to Verify:**
-- ...
+- **[HIGH/MED/LOW | Easy/Hard]** 항목 설명...
 
 **Logical Issues:**
-- ...
+- **[HIGH/MED/LOW | Easy/Hard]** 항목 설명...
 
 **Recommended Additions:**
-- ...
+- **[HIGH/MED/LOW | Easy/Hard]** 항목 설명...
 
 **Final Verdict:**
-[1–2문장: 보고서 발행 적합성 및 필수 수정 사항]
+[1–2문장: 보고서 발행 적합성 및 필수 수정 사항. HIGH 항목이 1건 이상이면 "Needs Revision" 이상으로 판정.]

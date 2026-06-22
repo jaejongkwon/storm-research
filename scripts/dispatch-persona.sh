@@ -14,12 +14,13 @@ if [ ! -f "$CONFIG" ]; then
   echo "❌ llm-config.yaml 없음: $CONFIG" >&2; exit 1
 fi
 
-# yaml에서 이 페인의 LLM + 페르소나 읽기 (| 구분자로 멀티워드 페르소나 보호)
-IFS='|' read -r LLM PERSONA <<< "$(python3 - <<EOF
+# yaml에서 이 페인의 LLM + 페르소나 + role_desc 읽기 (| 구분자로 멀티워드 필드 보호)
+IFS='|' read -r LLM PERSONA ROLE_DESC <<< "$(python3 - <<EOF
 import yaml, sys
 cfg = yaml.safe_load(open("$CONFIG", encoding="utf-8"))
 pane = cfg["panes"]["$PANE"]
-print(pane["llm"] + "|" + pane["persona"])
+role_desc = pane.get("role_desc", pane["persona"])
+print(pane["llm"] + "|" + pane["persona"] + "|" + role_desc)
 EOF
 )"
 # #4: set -e는 $(...) 할당에서 exit code를 전파하지 않으므로 명시적 가드
@@ -70,11 +71,11 @@ EOF
 PROMPT_FILE="$SKILL_DIR/tmp/prompt-$PANE.md"
 python3 - \
     "$SKILL_DIR/sub-skills/step1-multi-perspective.md" \
-    "$TOPIC" "$PERSONA" "$LLM" "$PANE" \
+    "$TOPIC" "$PERSONA" "$LLM" "$PANE" "$ROLE_DESC" \
     > "$PROMPT_FILE" <<'PYEOF'
 import sys
 
-template_path, topic, persona, llm, pane = sys.argv[1:6]
+template_path, topic, persona, llm, pane, role_desc = sys.argv[1:7]
 
 with open(template_path, encoding="utf-8") as f:
     lines = f.readlines()
@@ -94,6 +95,7 @@ body = body.replace("{{TOPIC}}", topic)
 body = body.replace("{{PERSONA}}", persona)
 body = body.replace("{{ASSIGNED_LLM}}", llm)
 body = body.replace("{{PANE_ID}}", pane)
+body = body.replace("{{ROLE_DESC}}", role_desc)
 print(body, end="")
 PYEOF
 

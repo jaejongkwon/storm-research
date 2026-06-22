@@ -84,29 +84,39 @@ def load_persona_outputs(tmp_dir: Path, cfg: dict) -> list:
     return personas
 
 
-def extract_sources(peer_review_md: str) -> list:
-    """Step4 마크다운에서 인라인 소스 목록 추출.
+def extract_sources(synthesis_md: str, peer_review_md: str) -> list:
+    """출처 목록 추출.
 
-    마크다운 링크 [text](url) 및 Source: 라인 패턴을 감지한다.
-    링크를 먼저 수집하고, 불릿 라인은 링크가 없는 경우에만 추가한다.
+    우선순위:
+    1. step3 종합 보고서의 ## References 번호 목록 (주 출처)
+    2. step4 peer review의 마크다운 링크 [text](url) (보조)
     """
     seen: set = set()
     sources = []
 
-    # 1. 마크다운 링크 패턴: [text](url)
+    # 1. step3 ## References 섹션에서 번호 목록 추출
+    in_refs = False
+    for line in synthesis_md.splitlines():
+        if re.match(r"^##\s+References", line, re.IGNORECASE):
+            in_refs = True
+            continue
+        if in_refs:
+            if line.startswith("##"):  # 다음 섹션 시작 → 종료
+                break
+            m = re.match(r"^\d+\.\s+(.+)", line)
+            if m:
+                entry = m.group(1).strip()
+                if entry not in seen:
+                    seen.add(entry)
+                    sources.append(entry)
+
+    # 2. step4 peer review에서 마크다운 링크 추가 (중복 제외)
     links = re.findall(r"\[([^\]]+)\]\((https?://[^\)]+)\)", peer_review_md)
     for text, url in links:
         entry = f"[{text}]({url})"
         if entry not in seen:
             seen.add(entry)
             sources.append(entry)
-
-    # 2. "Source:" 라인 (URL 없는 텍스트 출처)
-    for line in peer_review_md.splitlines():
-        line = line.strip()
-        if line.startswith("Source:") and line not in seen:
-            seen.add(line)
-            sources.append(line)
 
     return sources
 
@@ -208,7 +218,7 @@ def main() -> None:
     wiki_dir = Path(args.wiki_dir)
     wiki_dir.mkdir(parents=True, exist_ok=True)
 
-    sources    = extract_sources(step4_md)
+    sources    = extract_sources(step3_md, step4_md)
     wiki_note  = generate_wiki_note(args.topic, slug, cfg, step3_md, sources)
     wiki_file  = wiki_dir / f"{slug}-storm.md"
     wiki_file.write_text(wiki_note, encoding="utf-8")

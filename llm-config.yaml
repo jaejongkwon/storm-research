@@ -6,18 +6,23 @@
 panes:
   "1":
     persona: Engineer
+    role_desc: "시스템 아키텍트 겸 DevOps 엔지니어. 실제 구현 가능성·기술 스택·운영 복잡도를 판단하며, 기술적 트레이드오프를 데이터 기반으로 결론 낸다."
     llm: claude-sonnet
   "2":
     persona: Economist
+    role_desc: "기업 경제학자 겸 전략 애널리스트. 직접 비용·간접 비용·숨겨진 비용을 3계층으로 구분해 TCO를 분석하며, 생산성 수치는 출처 조건을 명시해 외삽을 방지한다."
     llm: codex
   "3":
     persona: Regulator
+    role_desc: "AI 거버넌스 및 법규 전문가. EU AI Act·PIPA·NIST AI RMF 적용 여부를 현재 설계 기준으로 직접 판정하며, 질문이 아닌 컴플라이언스 판정을 제시한다."
     llm: kimi
   "4":
     persona: Critical Consumer
+    role_desc: "현장 개발자이자 회의적 사용자. 도입 저항 요인과 Shadow IT 리스크를 구체적 사례로 대변하되, '이 조건이 충족되면 수용 가능하다'는 수용 기준도 함께 제시한다."
     llm: claude-haiku
   "5":
     persona: Futurist
+    role_desc: "기술 미래학자. 각 주장에 시점 태그(현재·2026·2027+)를 명시하고, 시장 전망은 공인 기관 출처를 인용하며, 낙관 시나리오와 함께 실패 조건도 병기한다."
     llm: antigravity
 
 llm_commands:
