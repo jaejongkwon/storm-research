@@ -234,6 +234,127 @@ else
 fi
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# CHECK 6: ADR-03 — pane_fallback config 구조 검증
+#   pane_fallback 섹션이 존재하고 5개 페인 모두 유효한 Claude 티어를 갖는지 확인.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+echo ""
+echo "[6] ADR-03: pane_fallback config 구조 검증"
+
+"$PY" - <<PYCHECK
+import sys, yaml
+
+cfg = yaml.safe_load(open("${SKILL_DIR_WIN}/llm-config.yaml", encoding="utf-8"))
+valid_tiers = {"claude-opus", "claude-sonnet", "claude-haiku"}
+pane_fallback = cfg.get("pane_fallback", {})
+failed = []
+
+if not pane_fallback:
+    print("  FAIL: pane_fallback 섹션 없음")
+    sys.exit(1)
+
+for pane in ["1", "2", "3", "4", "5"]:
+    tier = pane_fallback.get(pane, "")
+    if tier in valid_tiers:
+        print(f"  PASS: pane_fallback[{pane}] = {tier}")
+    else:
+        print(f"  FAIL: pane_fallback[{pane}] = '{tier}' (유효한 Claude 티어 아님)")
+        failed.append(pane)
+
+if failed:
+    sys.exit(1)
+PYCHECK
+
+if [ $? -eq 0 ]; then
+  ok "pane_fallback 5개 페인 모두 유효한 Claude 티어 보유"
+else
+  fail "pane_fallback 구조 오류"
+fi
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# CHECK 7: ADR-03 — fallback 체인 로직 검증
+#   Claude만 설치된 환경을 모의(shutil.which mock)해 각 페인이
+#   올바른 티어를 선택하는지 확인.
+#   pane 2 (codex → claude-sonnet), pane 3 (kimi → claude-opus),
+#   pane 4 (claude-haiku → haiku 직접 해소), 3차 fallback 경로.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+echo ""
+echo "[7] ADR-03: fallback 체인 로직 검증 (Claude-only 환경 모의)"
+
+"$PY" - <<PYCHECK
+import sys, yaml
+
+cfg = yaml.safe_load(open("${SKILL_DIR_WIN}/llm-config.yaml", encoding="utf-8"))
+
+# Claude CLI만 설치된 환경 모의 — "claude" 바이너리만 존재
+def mock_resolve(name):
+    cmd = cfg["llm_commands"].get(name, "")
+    bin_name = cmd.split()[0] if cmd else ""
+    exists = (bin_name == "claude")   # claude만 설치된 가정
+    return cmd if (cmd and exists) else None
+
+def pick_cmd(llm, pane):
+    """dispatch-persona.sh의 fallback 체인 재현."""
+    cmd = mock_resolve(llm)
+    if cmd:
+        return cmd, "primary"
+    pane_fb = cfg.get("pane_fallback", {}).get(pane, "")
+    if pane_fb:
+        cmd = mock_resolve(pane_fb)
+        if cmd:
+            return cmd, f"pane_fallback({pane_fb})"
+    global_fb = cfg.get("fallback_llm", "claude-sonnet")
+    cmd = mock_resolve(global_fb)
+    if cmd:
+        return cmd, f"global_fallback({global_fb})"
+    return None, "none"
+
+cases = [
+    # (pane, primary_llm, expected_model, description)
+    ("2", "codex",        "claude-sonnet-4-6", "Economist: codex → pane_fallback → sonnet"),
+    ("3", "kimi",         "claude-opus-4-8",   "Regulator: kimi  → pane_fallback → opus"),
+    ("4", "claude-haiku", "claude-haiku-4-5",  "Critical Consumer: haiku → 1차 직접 해소"),
+    ("5", "antigravity",  "claude-sonnet-4-6", "Futurist: antigravity → pane_fallback → sonnet"),
+]
+
+# 3차 fallback 경로: pane_fallback 티어도 없는 가상 케이스
+cfg_copy = {**cfg, "pane_fallback": {}}
+def pick_global(llm):
+    cmd = mock_resolve(llm)
+    if cmd: return cmd, "primary"
+    global_fb = cfg_copy.get("fallback_llm", "claude-sonnet")
+    cmd = mock_resolve(global_fb)
+    return (cmd, f"global_fallback({global_fb})") if cmd else (None, "none")
+
+failed = []
+for pane, llm, expected_model, desc in cases:
+    cmd, via = pick_cmd(llm, pane)
+    if cmd and expected_model in cmd:
+        print(f"  PASS: {desc} (via {via})")
+    else:
+        print(f"  FAIL: {desc} → got '{cmd}' (expected model: {expected_model})")
+        failed.append(desc)
+
+# 3차 fallback 체인
+llm3 = "nonexistent-llm"
+cmd3, via3 = pick_global(llm3)
+expected3 = "claude-sonnet-4-6"
+if cmd3 and expected3 in cmd3:
+    print(f"  PASS: 3차 fallback: {llm3} + pane_fallback 없음 → {via3}")
+else:
+    print(f"  FAIL: 3차 fallback → got '{cmd3}'")
+    failed.append("3차 fallback")
+
+if failed:
+    sys.exit(1)
+PYCHECK
+
+if [ $? -eq 0 ]; then
+  ok "ADR-03 fallback 체인 모든 경로 정상 (1차→2차→3차)"
+else
+  fail "ADR-03 fallback 체인 오류"
+fi
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # FINAL RESULT
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 echo ""
