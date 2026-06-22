@@ -25,23 +25,40 @@ EOF
 # #4: set -e는 $(...) 할당에서 exit code를 전파하지 않으므로 명시적 가드
 [ -n "$LLM" ] && [ -n "$PERSONA" ] || { echo "❌ yaml 파싱 실패 (LLM/페르소나 비어있음): $CONFIG" >&2; exit 1; }
 
-# LLM CLI 명령 읽기 — 1차 LLM + fallback 바이너리 모두 존재 확인 (#6)
+# LLM CLI 명령 읽기 — 1차 LLM → pane_fallback 티어 → fallback_llm 순서로 확인 (#6, ADR-03)
 LLM_CMD="$(python3 - <<EOF
 import yaml, sys, shutil
 cfg = yaml.safe_load(open("$CONFIG", encoding="utf-8"))
 llm = "$LLM"
-cmd = cfg["llm_commands"].get(llm, "")
-bin_name = cmd.split()[0] if cmd else ""
-if not cmd or not shutil.which(bin_name):
-    fallback = cfg.get("fallback_llm", "claude-sonnet")
-    fallback_cmd = cfg["llm_commands"].get(fallback, "")
-    fallback_bin = fallback_cmd.split()[0] if fallback_cmd else ""
-    if not fallback_cmd or not shutil.which(fallback_bin):
-        print(f"❌ {llm} 와 fallback {fallback} 모두 없음 — claude CLI 설치 확인 필요", file=sys.stderr)
-        sys.exit(1)
-    print(f"⚠️  {llm} ({bin_name or '?'}) not found → {fallback}", file=sys.stderr)
-    cmd = fallback_cmd
-print(cmd)
+pane = "$PANE"
+
+def resolve(name):
+    cmd = cfg["llm_commands"].get(name, "")
+    bin_name = cmd.split()[0] if cmd else ""
+    return cmd if (cmd and shutil.which(bin_name)) else None
+
+# 1차: 지정 LLM
+cmd = resolve(llm)
+if cmd:
+    print(cmd); sys.exit(0)
+
+# 2차: pane_fallback — Claude 티어 (ADR-03)
+pane_fb = cfg.get("pane_fallback", {}).get(pane, "")
+if pane_fb:
+    cmd = resolve(pane_fb)
+    if cmd:
+        print(f"⚠️  {llm} not found → pane {pane} fallback: {pane_fb}", file=sys.stderr)
+        print(cmd); sys.exit(0)
+
+# 3차: 전역 fallback_llm
+global_fb = cfg.get("fallback_llm", "claude-sonnet")
+cmd = resolve(global_fb)
+if cmd:
+    print(f"⚠️  {llm} / {pane_fb or '-'} not found → global fallback: {global_fb}", file=sys.stderr)
+    print(cmd); sys.exit(0)
+
+print(f"❌ {llm}, pane_fallback({pane_fb or '-'}), global fallback({global_fb}) 모두 없음 — claude CLI 설치 확인 필요", file=sys.stderr)
+sys.exit(1)
 EOF
 )"
 # #4: LLM_CMD 빈 문자열도 명시적 가드
