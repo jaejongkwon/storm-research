@@ -1,0 +1,8 @@
+dist/
+tmp/*.md
+!tmp/.gitkeep
+*.bak.*
+__pycache__/
+*.pyc
+.env
+raw/
