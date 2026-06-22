@@ -59,22 +59,75 @@ rm -f "$SKILL_DIR/tmp/persona-1.md" \
 
 통과 조건: tmp/ 잔여 파일 삭제 완료 — Phase 1로 진행.
 
-삭제 완료 후 사용자에게 시작 알림을 출력하라:
+삭제 완료 후 Phase 0.5로 진행한다.
+
+---
+
+## Phase 0.5: 실행 계획 확인 — 사용자 승인 게이트
+
+**이 단계에서 반드시 멈추고 사용자 승인을 받은 후에만 Phase 1로 진행한다.**
+
+### 0.5-1. LLM 실제 해석 (fallback 포함)
+
+`llm-config.yaml`을 읽고, 5개 페인 각각에 대해 3단계 fallback 체인을 해석하여
+실제로 사용될 LLM을 결정한다:
+
+1. **1차**: 페인에 지정된 LLM CLI가 설치되어 있는가? → 있으면 그것을 사용
+2. **2차**: 없으면 `pane_fallback[pane]`에 지정된 Claude 티어 CLI가 있는가? → 있으면 그것을 사용
+3. **3차**: 없으면 `fallback_llm`(기본값 `claude-sonnet`)을 사용
+
+### 0.5-2. 실행 계획 출력
+
+아래 형식으로 **실제 사용될 LLM**을 사용자에게 보여준다:
 
 ```
-STORM 리서치 시작: <TOPIC>
-Session: <SESSION>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STORM 리서치 실행 계획
+주제: <TOPIC>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-페르소나 배정 (llm-config.yaml 기준):
-  Pane 1: Engineer        → claude-sonnet
-  Pane 2: Economist       → codex
-  Pane 3: Regulator       → kimi          (ADR-01)
-  Pane 4: Critical Consumer → claude-haiku
-  Pane 5: Futurist        → antigravity
+페르소나 × LLM 배정:
+  Pane 1 | Engineer          | <실제 LLM>  [설정: <원래 지정값>]
+  Pane 2 | Economist         | <실제 LLM>  [설정: <원래 지정값>]
+  Pane 3 | Regulator         | <실제 LLM>  [설정: <원래 지정값>]
+  Pane 4 | Critical Consumer | <실제 LLM>  [설정: <원래 지정값>]
+  Pane 5 | Futurist          | <실제 LLM>  [설정: <원래 지정값>]
 
-실제 LLM은 llm-config.yaml에서 동적으로 확인됨.
-지정 LLM CLI 부재 시 claude-sonnet으로 자동 fallback.
+fallback이 적용된 페인은 ⚠️ 표시.
+예) Pane 2 | Economist | claude-sonnet ⚠️  [설정: codex — CLI 없음]
+
+예상 소요 시간: ~10분 (Phase 1 병렬 조사 포함)
+출력 위치:
+  HTML: dist/<SLUG>/report.html
+  Wiki: wiki/AI-Strategy/<SLUG>-storm.md
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+위 설정으로 리서치를 시작할까요?
+승인하면 보고서 완성까지 자동으로 진행됩니다 (추가 확인 없음).
+
+  [y] 승인 — 지금 바로 시작
+  [n] 취소 — LLM 설정 변경 후 재실행
+
+> 
 ```
+
+### 0.5-3. 승인 대기 및 분기
+
+- **사용자가 `y` (또는 `yes`, `진행`, `ok` 등 긍정 응답) 입력** →
+  아래 메시지를 출력하고 Phase 1로 진행:
+  ```
+  ✅ 승인됨 — YOLO 모드 시작. 보고서 완성까지 자동 진행합니다.
+  ```
+  이후 Phase 1~4는 **추가 사용자 확인 없이** 완전 자동으로 실행한다.
+
+- **사용자가 `n` (또는 `no`, `취소`, `cancel`) 입력** →
+  아래 메시지를 출력하고 즉시 중단:
+  ```
+  ❌ 취소됨.
+  LLM 설정 변경: E:/My-wiki/project/storm/llm-config.yaml
+  변경 후 /storm-research "<TOPIC>" 을 다시 실행하세요.
+  ```
+  Phase 1로 **진행하지 않는다**.
 
 ---
 
