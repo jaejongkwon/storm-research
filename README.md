@@ -182,7 +182,7 @@ bash scripts/smoke-test.sh
   PASS: report.html exists
   ...
 ========================================================
- Results: 12 passed, 0 failed
+ Results: 8 passed, 0 failed
  STORM smoke test: ALL CHECKS PASSED
 ========================================================
 ```
