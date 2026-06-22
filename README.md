@@ -220,10 +220,28 @@ llm_commands:
   kimi:           "kimi chat"
   # 새 LLM: 이 섹션에 한 줄 추가
 
-fallback_llm: claude-sonnet   # 지정 CLI 미설치 시 자동 대체
+fallback_llm: claude-sonnet   # 3차 fallback — 아래 pane_fallback도 없을 때
+
+# Claude만 설치된 환경에서 페인 역할 난이도에 맞는 티어로 자동 대체 (ADR-03)
+pane_fallback:
+  "1": claude-sonnet    # Engineer        — 기술 분석·구현 추론
+  "2": claude-sonnet    # Economist       — 균형 잡힌 경제 추론
+  "3": claude-opus      # Regulator       — ISO·법규 깊이 해석
+  "4": claude-haiku     # Critical Consumer — 단순 비판·소비자 관점
+  "5": claude-sonnet    # Futurist        — 창의적 시나리오 추론
 ```
 
-지정한 LLM CLI가 없으면 `claude-sonnet`으로 자동 fallback하고 경고를 출력한 뒤 계속 진행합니다.
+지정한 LLM CLI가 없을 때 3단계로 fallback합니다:
+
+```
+1차: panes[N].llm 에 지정한 LLM (codex, kimi 등)
+  ↓ CLI 미설치
+2차: pane_fallback[N] 에 지정한 Claude 티어 (역할 난이도 기준)
+  ↓ Claude도 없음
+3차: fallback_llm (기본: claude-sonnet)
+```
+
+Claude Code만 설치된 환경이라면 `pane_fallback`이 자동으로 적용되어 **Opus / Sonnet / Haiku 혼합 구성**으로 실행됩니다. `pane_fallback` 섹션을 직접 편집해 티어 배분을 조정할 수 있습니다.
 
 ---
 
