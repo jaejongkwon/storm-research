@@ -29,15 +29,18 @@ count_done() {
 }
 
 # #10: count_done을 매 반복 1회만 호출해 조건·echo 불일치 방지
+# sleep 간격은 limit에 비례해 조절 (짧은 timeout에서 불필요한 대기 방지)
 wait_loop() {
-  local limit=$1 label=$2 elapsed=0 n
+  local limit=$1 label=$2 elapsed=0 n sleep_sec
   while true; do
     n=$(count_done)
     [ "$n" -ge 5 ] && break
     [ "$elapsed" -ge "$limit" ] && break
     echo "  [$label] 진행: $n/5 완료 (${elapsed}s/${limit}s)"
-    sleep 5
-    elapsed=$((elapsed + 5))
+    sleep_sec=$(( (limit - elapsed) > 5 ? 5 : (limit - elapsed) ))
+    [ "$sleep_sec" -le 0 ] && sleep_sec=1
+    sleep "$sleep_sec"
+    elapsed=$((elapsed + sleep_sec))
   done
 }
 
@@ -62,8 +65,9 @@ for i in 1 2 3 4 5; do
   fi
 done
 
-echo "⏳ Phase 2 (Retry): +120s 대기..."
-wait_loop 120 "Retry"
+RETRY_TIMEOUT=$(( TIMEOUT < 60 ? TIMEOUT : 120 ))
+echo "⏳ Phase 2 (Retry): +${RETRY_TIMEOUT}s 대기..."
+wait_loop "$RETRY_TIMEOUT" "Retry"
 
 DONE=$(count_done)
 if [ "$DONE" -ge 3 ]; then

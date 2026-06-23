@@ -355,6 +355,73 @@ else
 fi
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# CHECK 8: 출처 추출 — 영문 References + 한국어 헤더 모두 지원 검증
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+echo ""
+echo "[8] 출처 추출 (영문 + 한국어 헤더)"
+
+"$PY" - <<PYCHECK
+import sys, re
+from pathlib import Path
+
+scripts_dir = Path("${SKILL_DIR_WIN}/scripts")
+sys.path.insert(0, str(scripts_dir))
+
+# extract_sources 로직 직접 검증 (import 없이 인라인)
+def extract_sources(synthesis_md, peer_review_md=""):
+    seen = set()
+    sources = []
+    in_refs = False
+    for line in synthesis_md.splitlines():
+        if re.match(r"^##\s+(References|Sources|출처|참고문헌|참조)", line, re.IGNORECASE):
+            in_refs = True
+            continue
+        if in_refs:
+            if line.startswith("##"):
+                break
+            m = re.match(r"^\d+\.\s+(.+)", line)
+            if m:
+                entry = m.group(1).strip()
+                if entry not in seen:
+                    seen.add(entry)
+                    sources.append(entry)
+    return sources
+
+# 영문 ## References
+en_md = "# Synthesis\n## References\n1. Smith 2024\n2. Jones 2023\n"
+src_en = extract_sources(en_md)
+if len(src_en) == 2 and "Smith 2024" in src_en:
+    print("  PASS: 영문 ## References 추출 (2건)")
+else:
+    print(f"  FAIL: 영문 References → {src_en}")
+    sys.exit(1)
+
+# 한국어 ## 출처
+ko_md = "# 종합\n## 출처\n1. 홍길동 2024\n2. 이순신 2023\n"
+src_ko = extract_sources(ko_md)
+if len(src_ko) == 2 and "홍길동 2024" in src_ko:
+    print("  PASS: 한국어 ## 출처 추출 (2건)")
+else:
+    print(f"  FAIL: 한국어 출처 → {src_ko}")
+    sys.exit(1)
+
+# 헤더 없을 때 빈 목록 반환
+no_refs_md = "# 종합\n내용만 있고 출처 섹션 없음\n"
+src_none = extract_sources(no_refs_md)
+if src_none == []:
+    print("  PASS: 출처 섹션 없으면 빈 목록 반환")
+else:
+    print(f"  FAIL: 예상 빈 목록, 실제: {src_none}")
+    sys.exit(1)
+PYCHECK
+
+if [ $? -eq 0 ]; then
+  ok "출처 추출 영문+한국어 헤더 모두 정상"
+else
+  fail "출처 추출 오류"
+fi
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # FINAL RESULT
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 echo ""

@@ -10,12 +10,16 @@ SKILL_DIR="${SKILL_DIR:-E:/My-wiki/project/storm}"
 CONFIG="$SKILL_DIR/llm-config.yaml"
 OUTPUT_FILE="$SKILL_DIR/tmp/persona-$PANE.md"
 
+# Windows의 python3는 MS Store 스텁일 수 있으므로 실제 실행 가능한 python 선택
+PY="$(command -v python 2>/dev/null || command -v python3)"
+[ -n "$PY" ] || { echo "❌ python3/python 없음" >&2; exit 1; }
+
 if [ ! -f "$CONFIG" ]; then
   echo "❌ llm-config.yaml 없음: $CONFIG" >&2; exit 1
 fi
 
 # yaml에서 이 페인의 LLM + 페르소나 + role_desc 읽기 (| 구분자로 멀티워드 필드 보호)
-IFS='|' read -r LLM PERSONA ROLE_DESC <<< "$(python3 - <<EOF
+IFS='|' read -r LLM PERSONA ROLE_DESC <<< "$("$PY" - <<EOF
 import yaml, sys
 cfg = yaml.safe_load(open("$CONFIG", encoding="utf-8"))
 pane = cfg["panes"]["$PANE"]
@@ -27,7 +31,7 @@ EOF
 [ -n "$LLM" ] && [ -n "$PERSONA" ] || { echo "❌ yaml 파싱 실패 (LLM/페르소나 비어있음): $CONFIG" >&2; exit 1; }
 
 # LLM CLI 명령 읽기 — 1차 LLM → pane_fallback 티어 → fallback_llm 순서로 확인 (#6, ADR-03)
-LLM_CMD="$(python3 - <<EOF
+LLM_CMD="$("$PY" - <<EOF
 import yaml, sys, shutil
 cfg = yaml.safe_load(open("$CONFIG", encoding="utf-8"))
 llm = "$LLM"
@@ -69,7 +73,7 @@ EOF
 # 변수를 sys.argv로 전달해 |, &, \ 등 특수문자를 안전하게 치환한다.
 # 영속 파일 사용 — mktemp+trap 금지 (dispatch 즉시 종료 시 tmux가 cat 전에 파일이 삭제됨)
 PROMPT_FILE="$SKILL_DIR/tmp/prompt-$PANE.md"
-python3 - \
+"$PY" - \
     "$SKILL_DIR/sub-skills/step1-multi-perspective.md" \
     "$TOPIC" "$PERSONA" "$LLM" "$PANE" "$ROLE_DESC" \
     > "$PROMPT_FILE" <<'PYEOF'

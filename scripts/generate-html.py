@@ -94,10 +94,10 @@ def extract_sources(synthesis_md: str, peer_review_md: str) -> list:
     seen: set = set()
     sources = []
 
-    # 1. step3 ## References 섹션에서 번호 목록 추출
+    # 1. step3 ## References 섹션에서 번호 목록 추출 (영문/한국어 헤더 모두 지원)
     in_refs = False
     for line in synthesis_md.splitlines():
-        if re.match(r"^##\s+References", line, re.IGNORECASE):
+        if re.match(r"^##\s+(References|Sources|출처|참고문헌|참조)", line, re.IGNORECASE):
             in_refs = True
             continue
         if in_refs:
