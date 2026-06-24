@@ -1,4 +1,4 @@
-﻿---
+---
 name: storm-research
 description: |
   Stanford STORM 방법론 기반 딥 리서치 스킬.
@@ -79,6 +79,8 @@ rm -f "$SKILL_DIR/tmp/persona-1.md" \
 ## Phase 0.5: 실행 계획 확인 — 사용자 승인 게이트
 
 **이 단계에서 반드시 멈추고 사용자 승인을 받은 후에만 Phase 1로 진행한다.**
+
+통과 조건: 사용자가 `y`(승인) 입력 시에만 Phase 1로 진행. `n`(취소)이면 STOP — awaiting gate verdict.
 
 ### 0.5-1. LLM 실제 해석 (fallback 포함)
 
