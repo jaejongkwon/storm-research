@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """STORM 리서치 결과를 HTML 보고서와 Wiki 노트로 변환.
 
 LLM 이름과 페르소나 역할은 런타임에 llm-config.yaml에서 읽는다.

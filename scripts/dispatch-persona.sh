@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # 특정 tmux 페인에 llm-config.yaml을 읽어 LLM CLI + 프롬프트 전송
 # Usage: dispatch-persona.sh <session> <pane-id> "<topic>"
 

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # STORM 5개 tmux 페인 초기화
 # Usage: setup-panes.sh <session-name> "<topic>"
 
