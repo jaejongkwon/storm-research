@@ -28,15 +28,35 @@ ok()   { echo "  PASS: $1"; PASS=$((PASS+1)); }
 fail() { echo "  FAIL: $1"; FAIL=$((FAIL+1)); }
 
 # ── Cleanup on exit ────────────────────────────────────────────────────────────
+# 이 테스트는 실제 tmp/ 산출물(persona·step)을 더미로 덮어쓰므로,
+# 시작 시 실존 파일을 백업하고 종료 시 복원한다 — 실제 STORM 결과 보존.
+REAL_FILES=(persona-1.md persona-2.md persona-3.md persona-4.md persona-5.md \
+            step2-contradictions.md step3-synthesis.md step4-peer-review.md)
+BACKUP_DIR="$TMP_DIR/.smoke-backup"
+
+backup_real() {
+  mkdir -p "$BACKUP_DIR"
+  for f in "${REAL_FILES[@]}"; do
+    [ -f "$TMP_DIR/$f" ] && cp "$TMP_DIR/$f" "$BACKUP_DIR/$f"
+  done
+}
+
 cleanup() {
-  rm -f "$TMP_DIR/persona-"{1,2,3,4,5}".md" \
-        "$TMP_DIR/step2-contradictions.md" \
-        "$TMP_DIR/step3-synthesis.md" \
-        "$TMP_DIR/step4-peer-review.md"
+  # 테스트가 만든 더미 산출물 제거
+  for f in "${REAL_FILES[@]}"; do rm -f "$TMP_DIR/$f"; done
   rm -rf "$DIST_DIR_POSIX"
   rm -f  "$WIKI_FILE_POSIX"
+  # 백업해 둔 실존 파일 복원
+  if [ -d "$BACKUP_DIR" ]; then
+    for f in "${REAL_FILES[@]}"; do
+      [ -f "$BACKUP_DIR/$f" ] && mv "$BACKUP_DIR/$f" "$TMP_DIR/$f"
+    done
+    rmdir "$BACKUP_DIR" 2>/dev/null
+  fi
 }
 trap cleanup EXIT
+
+backup_real   # 더미 생성 전에 실존 파일 백업
 
 echo "========================================================"
 echo " STORM smoke test"
@@ -419,6 +439,67 @@ if [ $? -eq 0 ]; then
   ok "출처 추출 영문+한국어 헤더 모두 정상"
 else
   fail "출처 추출 오류"
+fi
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# CHECK 9: 비대화형 미지원 LLM(codex)은 "설치돼 있어도" fallback 해야 함
+#   버그 재현: codex는 npm 설치돼 shutil.which()가 경로를 반환하지만
+#   대화형 터미널 전용이라 `cmd "$(cat prompt)" > out` 패턴에서 실패한다.
+#   resolver는 non_interactive_unsupported 목록의 LLM을 "설치돼 있어도"
+#   건너뛰고 pane_fallback(claude-sonnet)으로 대체해야 한다.
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+echo ""
+echo "[9] 비대화형 미지원 LLM fallback (codex 설치됨 → sonnet)"
+
+"$PY" - <<PYCHECK
+import sys, yaml
+
+cfg = yaml.safe_load(open("${SKILL_DIR_WIN}/llm-config.yaml", encoding="utf-8"))
+
+# 버그 조건 모의: claude AND codex 둘 다 설치된 환경
+def mock_resolve(name, unsupported):
+    if name in unsupported:
+        return None   # 비대화형 미지원 → 설치돼 있어도 건너뜀
+    cmd = cfg["llm_commands"].get(name, "")
+    bin_name = cmd.split()[0] if cmd else ""
+    exists = bin_name in ("claude", "codex")   # codex도 설치된 가정
+    return cmd if (cmd and exists) else None
+
+def pick_cmd(llm, pane, unsupported):
+    cmd = mock_resolve(llm, unsupported)
+    if cmd:
+        return cmd
+    pane_fb = cfg.get("pane_fallback", {}).get(pane, "")
+    if pane_fb:
+        cmd = mock_resolve(pane_fb, unsupported)
+        if cmd:
+            return cmd
+    global_fb = cfg.get("fallback_llm", "claude-sonnet")
+    return mock_resolve(global_fb, unsupported)
+
+unsupported = set(cfg.get("non_interactive_unsupported", []))
+
+# 핵심 단언: pane 2 (codex) → codex 설치됐어도 sonnet으로 fallback
+cmd = pick_cmd("codex", "2", unsupported)
+if cmd and "claude-sonnet-4-6" in cmd:
+    print("  PASS: codex 설치 환경에서도 pane 2 → claude-sonnet fallback")
+else:
+    print(f"  FAIL: pane 2 → got '{cmd}' (expected claude-sonnet-4-6)")
+    print("        → llm-config.yaml에 non_interactive_unsupported: [codex] 필요")
+    sys.exit(1)
+
+# codex가 unsupported 목록에 실제로 등록됐는지 확인
+if "codex" in unsupported:
+    print("  PASS: non_interactive_unsupported 목록에 codex 등록됨")
+else:
+    print("  FAIL: non_interactive_unsupported 목록에 codex 없음")
+    sys.exit(1)
+PYCHECK
+
+if [ $? -eq 0 ]; then
+  ok "비대화형 미지원 LLM은 설치돼 있어도 fallback"
+else
+  fail "비대화형 미지원 LLM fallback 미작동 (Bug 2)"
 fi
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
