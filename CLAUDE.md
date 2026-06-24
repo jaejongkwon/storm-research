@@ -96,8 +96,9 @@ bash scripts/dispatch-persona.sh <session> <pane-id> "<주제>"
 # 출력 수집 대기
 bash scripts/collect-outputs.sh [skill-dir] [timeout-sec]
 
-# HTML 보고서 생성
-python3 scripts/generate-html.py "<주제>" \
+# HTML 보고서 생성 (Windows: python3는 Store 스텁일 수 있어 python 우선)
+PY="$(command -v python 2>/dev/null || command -v python3)"
+"$PY" scripts/generate-html.py "<주제>" \
   --step2 tmp/step2-contradictions.md \
   --step3 tmp/step3-synthesis.md \
   --step4 tmp/step4-peer-review.md

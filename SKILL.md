@@ -284,7 +284,9 @@ cat "$SKILL_DIR/tmp/persona-1.md" \
 generate-html.py 스크립트를 호출한다:
 
 ```bash
-python3 "$SKILL_DIR/scripts/generate-html.py" \
+# Windows의 python3는 MS Store 스텁일 수 있으므로 실제 python 우선 탐지
+PY="$(command -v python 2>/dev/null || command -v python3)"
+"$PY" "$SKILL_DIR/scripts/generate-html.py" \
   "$TOPIC" \
   --step2 "$SKILL_DIR/tmp/step2-contradictions.md" \
   --step3 "$SKILL_DIR/tmp/step3-synthesis.md" \
