@@ -35,6 +35,13 @@ llm_commands:
 
 fallback_llm: claude-sonnet   # pane_fallback 티어도 없을 때 최후 대체
 
+# 비대화형(-p) 실행 불가 CLI — 설치돼 있어도 fallback 대상으로 취급한다.
+# codex는 대화형 터미널 전용이라 `cmd "$(cat prompt)" > out` 패턴에서
+# `stdin is not a terminal` 오류로 실패하므로, shutil.which()가 경로를
+# 찾더라도 미설치처럼 건너뛰고 pane_fallback으로 대체한다 (ADR-03 보강).
+non_interactive_unsupported:
+  - codex
+
 # 1차 LLM CLI 미설치 시 페인별 Claude 티어 (역할 난이도 기준)
 pane_fallback:
   "1": claude-sonnet    # Engineer        — 기술 분석·구현 추론

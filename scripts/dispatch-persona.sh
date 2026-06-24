@@ -37,7 +37,12 @@ cfg = yaml.safe_load(open("$CONFIG", encoding="utf-8"))
 llm = "$LLM"
 pane = "$PANE"
 
+# 비대화형(-p) 실행 불가 CLI는 설치돼 있어도 미설치처럼 취급 (ADR-03 보강)
+unsupported = set(cfg.get("non_interactive_unsupported", []))
+
 def resolve(name):
+    if name in unsupported:
+        return None
     cmd = cfg["llm_commands"].get(name, "")
     bin_name = cmd.split()[0] if cmd else ""
     return cmd if (cmd and shutil.which(bin_name)) else None

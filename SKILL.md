@@ -16,6 +16,18 @@ description: |
 **당신은 Main Opus 오케스트레이터다.** 아래 Phase를 순서대로 실행하라.
 서브에이전트 위임 금지 — 모든 단계를 이 세션에서 직접 처리한다.
 
+### ⚡ YOLO 재개 규칙 (컨텍스트 압축 생존)
+
+대화 컨텍스트가 중간에 압축·재개되면 "이미 승인받았다"는 기억이 소실되어
+파이프라인이 부당하게 멈출 수 있다. 이를 막기 위해:
+
+- 작업 재개 시 **가장 먼저** `tmp/.yolo-approved` 파일 존재 여부를 확인하라.
+- 파일이 존재하면 → **이미 YOLO 승인된 실행이다.** 사용자에게 재확인을 요구하지 말고,
+  미완료 Phase(완료된 `tmp/` 산출물로 진행 지점 판단)부터 **자동으로 계속 진행**하라.
+  Phase 0.5 승인 게이트를 다시 띄우지 않는다.
+- 파일이 없으면 → 신규 실행이므로 Phase 0부터 정상 진행한다.
+- Phase 4 완료(완료 보고 출력) 후 이 마커를 삭제한다.
+
 ---
 
 ## 변수 정의
@@ -54,7 +66,8 @@ rm -f "$SKILL_DIR/tmp/persona-1.md" \
       "$SKILL_DIR/tmp/step1-all-perspectives.md" \
       "$SKILL_DIR/tmp/step2-contradictions.md" \
       "$SKILL_DIR/tmp/step3-synthesis.md" \
-      "$SKILL_DIR/tmp/step4-peer-review.md"
+      "$SKILL_DIR/tmp/step4-peer-review.md" \
+      "$SKILL_DIR/tmp/.yolo-approved"
 ```
 
 통과 조건: tmp/ 잔여 파일 삭제 완료 — Phase 1로 진행.
@@ -73,6 +86,9 @@ rm -f "$SKILL_DIR/tmp/persona-1.md" \
 실제로 사용될 LLM을 결정한다:
 
 1. **1차**: 페인에 지정된 LLM CLI가 설치되어 있는가? → 있으면 그것을 사용
+   단, 해당 LLM이 `non_interactive_unsupported` 목록(예: `codex`)에 있으면
+   **설치돼 있어도 미설치로 간주**하고 2차로 넘어간다 — 비대화형(`-p`) 실행이
+   불가능해 `stdin is not a terminal` 오류로 실패하기 때문이다.
 2. **2차**: 없으면 `pane_fallback[pane]`에 지정된 Claude 티어 CLI가 있는가? → 있으면 그것을 사용
 3. **3차**: 없으면 `fallback_llm`(기본값 `claude-sonnet`)을 사용
 
@@ -114,7 +130,11 @@ fallback이 적용된 페인은 ⚠️ 표시.
 ### 0.5-3. 승인 대기 및 분기
 
 - **사용자가 `y` (또는 `yes`, `진행`, `ok` 등 긍정 응답) 입력** →
-  아래 메시지를 출력하고 Phase 1로 진행:
+  먼저 YOLO 상태 마커 파일을 생성한다 (컨텍스트 압축 후에도 승인 상태 유지용):
+  ```bash
+  echo "$TOPIC" > "$SKILL_DIR/tmp/.yolo-approved"
+  ```
+  그 후 아래 메시지를 출력하고 Phase 1로 진행:
   ```
   ✅ 승인됨 — YOLO 모드 시작. 보고서 완성까지 자동 진행합니다.
   ```
@@ -298,7 +318,12 @@ sources:
 
 ## 완료 보고
 
-모든 Phase가 성공하면 아래 형식으로 결과를 출력하라:
+모든 Phase가 성공하면 YOLO 마커를 삭제하고 (다음 실행에 잔류 방지),
+아래 형식으로 결과를 출력하라:
+
+```bash
+rm -f "$SKILL_DIR/tmp/.yolo-approved"
+```
 
 ```
 STORM 리서치 완료: <TOPIC>
