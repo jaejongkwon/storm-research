@@ -64,6 +64,27 @@ def load_config(skill_dir: Path) -> dict:
         return yaml.safe_load(f)
 
 
+def extract_judgment(raw_md: str) -> str:
+    """페르소나 마크다운에서 Expert Judgment 한 줄 추출 (아코디언 요약줄용).
+
+    "Expert Judgment" 헤더(## 또는 ** 형태) 뒤 첫 비어있지 않은 줄을 가져와
+    인용부호(>)·강조(**)를 제거해 한 줄 요약으로 반환한다. 없으면 빈 문자열.
+    """
+    found = False
+    for line in raw_md.splitlines():
+        if re.search(r"Expert Judgment", line, re.IGNORECASE):
+            found = True
+            continue
+        if found:
+            s = line.strip()
+            if not s:
+                continue
+            s = s.lstrip(">").strip()
+            s = re.sub(r"\*\*(.+?)\*\*", r"\1", s).strip("*").strip()
+            return s
+    return ""
+
+
 def load_persona_outputs(tmp_dir: Path, cfg: dict) -> list:
     """tmp/persona-N.md 읽기. LLM·페르소나 이름은 yaml에서 동적으로 읽음.
 
@@ -79,6 +100,7 @@ def load_persona_outputs(tmp_dir: Path, cfg: dict) -> list:
             "role":      pane_cfg["persona"],
             "llm":       pane_cfg["llm"],
             "content":   sanitize_html(md_lib.markdown(raw_content)),  # #3: XSS 방어
+            "judgment":  extract_judgment(raw_content),
             "timed_out": timed_out,
         })
     return personas
