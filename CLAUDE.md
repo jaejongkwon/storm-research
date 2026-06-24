@@ -15,17 +15,19 @@ Stanford STORM 방법론(Shao et al., NAACL 2024) 기반 딥 리서치 자동화
 
 ## 핵심 경로
 
+저장소 루트(`E:\My-wiki\project\storm`)가 곧 스킬 디렉터리다. 전역 심링크가 이 루트로 직접 연결된다.
+
 | 역할 | 경로 |
 |------|------|
-| 메인 스킬 | `E:\My-wiki\.claude\skills\storm-research\SKILL.md` |
-| LLM 설정 | `E:\My-wiki\.claude\skills\storm-research\llm-config.yaml` |
-| 4단계 프롬프트 | `E:\My-wiki\.claude\skills\storm-research\sub-skills\` |
-| 자동화 스크립트 | `E:\My-wiki\.claude\skills\storm-research\scripts\` |
-| HTML 템플릿 | `E:\My-wiki\.claude\skills\storm-research\templates\` |
-| 실행 임시 파일 | `E:\My-wiki\.claude\skills\storm-research\tmp\` (gitignore) |
+| 메인 스킬 | `E:\My-wiki\project\storm\SKILL.md` |
+| LLM 설정 | `E:\My-wiki\project\storm\llm-config.yaml` |
+| 4단계 프롬프트 | `E:\My-wiki\project\storm\sub-skills\` |
+| 자동화 스크립트 | `E:\My-wiki\project\storm\scripts\` |
+| HTML 템플릿 | `E:\My-wiki\project\storm\templates\` |
+| 실행 임시 파일 | `E:\My-wiki\project\storm\tmp\` (gitignore) |
 | HTML 출력 | `E:\My-wiki\project\storm\dist\<topic-slug>\report.html` |
 | Wiki 출력 | `E:\My-wiki\wiki\AI-Strategy\<topic-slug>-storm.md` |
-| 전역 심링크 | `C:\Users\KECC\.claude\skills\storm-research` → Windows Junction |
+| 전역 심링크 | `C:\Users\KECC\.claude\skills\storm-research` → `E:\My-wiki\project\storm` (Windows Junction) |
 
 ---
 
