@@ -81,10 +81,23 @@ PROMPT_FILE="$SKILL_DIR/tmp/prompt-$PANE.md"
 "$PY" - \
     "$SKILL_DIR/sub-skills/step1-multi-perspective.md" \
     "$TOPIC" "$PERSONA" "$LLM" "$PANE" "$ROLE_DESC" \
+    "$SKILL_DIR/tmp/research-contract.md" \
     > "$PROMPT_FILE" <<'PYEOF'
+import os
 import sys
 
-template_path, topic, persona, llm, pane, role_desc = sys.argv[1:7]
+# Windows 콘솔 기본 인코딩(cp949)은 em-dash 등 인코딩 불가 → 출력은 항상 UTF-8로 고정
+sys.stdout.reconfigure(encoding="utf-8")
+
+template_path, topic, persona, llm, pane, role_desc, contract_path = sys.argv[1:8]
+
+# 리서치 계약 읽기 — 없거나 비어 있으면 주제 제목을 계약으로 간주 (Notion판 규칙과 동일)
+contract = topic
+if os.path.exists(contract_path):
+    with open(contract_path, encoding="utf-8-sig") as f:
+        content = f.read().strip()
+    if content:
+        contract = content
 
 with open(template_path, encoding="utf-8") as f:
     lines = f.readlines()
@@ -101,6 +114,7 @@ for line in lines:
 
 body = "".join(body_lines)
 body = body.replace("{{TOPIC}}", topic)
+body = body.replace("{{CONTRACT}}", contract)
 body = body.replace("{{PERSONA}}", persona)
 body = body.replace("{{ASSIGNED_LLM}}", llm)
 body = body.replace("{{PANE_ID}}", pane)

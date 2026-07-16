@@ -26,6 +26,7 @@ Stanford STORM 방법론(Shao et al., NAACL 2024) 기반 딥 리서치 자동화
 | HTML 템플릿 | `E:\My-wiki\project\storm\templates\` |
 | 실행 임시 파일 | `E:\My-wiki\project\storm\tmp\` (gitignore) |
 | HTML 출력 | `E:\My-wiki\project\storm\dist\<topic-slug>\report.html` |
+| 작업 로그 (감사 추적) | `E:\My-wiki\project\storm\dist\<topic-slug>\logs\` |
 | Wiki 출력 | `E:\My-wiki\wiki\AI-Strategy\<topic-slug>-storm.md` |
 | 전역 심링크 | `C:\Users\KECC\.claude\skills\storm-research` → `E:\My-wiki\project\storm` (Windows Junction) |
 
@@ -36,17 +37,22 @@ Stanford STORM 방법론(Shao et al., NAACL 2024) 기반 딥 리서치 자동화
 ```
 /storm-research [주제]
     │
-    ├─ Phase 0: tmp/ 초기화
-    ├─ Phase 1: llm-config.yaml 읽기 → 5개 CMUX 페인 생성 → 페르소나 디스패치
-    │           scripts/setup-panes.sh + scripts/dispatch-persona.sh × 5
-    ├─ Phase 2: 완료 대기 (scripts/collect-outputs.sh, 타임아웃 300초)
-    │           → tmp/persona-1.md ~ persona-5.md
-    ├─ Phase 3: 메인 Opus가 Step 2~4 순차 실행
-    │           → tmp/step2-contradictions.md
-    │           → tmp/step3-synthesis.md
-    │           → tmp/step4-peer-review.md
-    └─ Phase 4: scripts/generate-html.py → dist/<slug>/report.html
-                wiki 노트 → wiki/AI-Strategy/<slug>-storm.md
+    ├─ Phase 0:   tmp/ 초기화
+    ├─ Phase 0.5: 리서치 계약 수립(crystallize) → tmp/research-contract.md
+    │             + 실행 계획 사용자 승인 (유일한 승인 게이트 — 이후 YOLO)
+    ├─ Phase 1:   llm-config.yaml 읽기 → 5개 CMUX 페인 생성 → 페르소나 디스패치
+    │             scripts/setup-panes.sh + scripts/dispatch-persona.sh × 5
+    ├─ Phase 2:   완료 대기 (scripts/collect-outputs.sh, 타임아웃 300초)
+    │             → tmp/persona-1.md ~ persona-5.md
+    │             → 관점별 압축본 tmp/step1-digests.md (Step 2·3에는 압축본만 전달)
+    ├─ Phase 3:   메인 Opus가 Step 2~4 순차 실행
+    │             → tmp/step2-contradictions.md
+    │             → tmp/step3-synthesis.md
+    │             → tmp/step4-peer-review.md (주장 등급: 확정/조건부/미확인 포함)
+    ├─ Phase 3.5: export 전 self-check (자가 게이트 — 실패 항목 보완 후 재검사)
+    ├─ Phase 4:   scripts/generate-html.py → dist/<slug>/report.html
+    │             wiki 노트 → wiki/AI-Strategy/<slug>-storm.md
+    └─ 완료 보고: tmp/ 산출물 → dist/<slug>/logs/ 아카이브 + 품질 메트릭 자가 보고
 ```
 
 페인 간 직접 통신 없음. 모든 결과는 파일 경유 (`tmp/persona-N.md`).
