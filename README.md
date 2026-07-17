@@ -1,5 +1,12 @@
 # storm-research
 
+> **🧊 유지보수 상태: 동결 (2026-07-17)** — 이 레포는 STORM 방법론의 자연어 명세(SKILL.md)와
+> tmux 실행판의 **참조 구현**으로 보존됩니다. 활발한 유지보수·기능 개선은 파이썬 포팅본인
+> **my-wiki `apps/query-ui`** (storm_run.py + storm_headless.py)에서 진행합니다 — 웹 검색
+> grounding·로컬 위키 RAG·모델 티어링·테스트 커버리지·Notion 연동은 그쪽에만 있습니다.
+> 프롬프트(sub-skills/)를 고치고 싶다면 my-wiki `apps/query-ui/storm-prompts/`가 원본입니다.
+> tmux 멀티페인 실행 자체는 이 레포로 계속 가능합니다 (v2 구조 반영 완료 상태로 동결).
+
 Stanford STORM 방법론([Shao et al., NAACL 2024](https://arxiv.org/abs/2402.14207)) 기반 딥 리서치 자동화 스킬.
 
 5개 LLM 페르소나가 tmux 멀티 페인에서 병렬 조사 → 4단계 파이프라인 → **HTML 보고서 + Wiki 노트** 이중 출력.
